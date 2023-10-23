@@ -1,7 +1,7 @@
 CC := gcc
 CFLAGS := -g -Isrc -I/opt/homebrew/include
 # LDFLAGS := -Wl,-rpath,'$$ORIGIN'
-LDFLAGS := -Wl,-rpath,'@executable_path'
+LDFLAGS := -Wl,-rpath,'@executable_path' -lcurl
 
 
 CURRENT_DIR := $(shell pwd)
