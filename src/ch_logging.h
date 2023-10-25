@@ -1,18 +1,23 @@
 #ifndef _CH_LOGGING_H
 #define _CH_LOGGING_H
 
+#include "ch_macro.h"
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <stdio.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define XLOG_DEBUG 0
 #define XLOG_INFO 1
 #define XLOG_WARNING 2
 #define XLOG_ERROR 3
 static int LOG_LEVEL = -1;
-int get_log_level();
-void set_log_level(const char *log_level_str);
+CH_CAPI_EXPORT int get_log_level();
+CH_CAPI_EXPORT void set_log_level(const char *log_level_str);
 
 #define XLOG(level, format, ...)                                               \
   do {                                                                         \
@@ -46,5 +51,8 @@ void set_log_level(const char *log_level_str);
     }                                                                          \
   } while (0)
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif // !#ifndef _UTILS_H

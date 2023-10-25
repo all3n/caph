@@ -1,6 +1,7 @@
 #ifndef _CH_SOCKETS_H
 #define _CH_SOCKETS_H
 
+#include "ch_macro.h"
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <pthread.h>
@@ -11,8 +12,12 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#define BUFFER_SIZE 1024
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define MAX_CLIENTS 32
+
 
 typedef struct {
   int sockfd;
@@ -45,23 +50,27 @@ typedef struct {
 
 // server socket
 // bind -> listen -> accept
-int socket_bind(Socket *socket, int port);
-int socket_listen(Socket *socket, int backlog);
-int socket_accept(Socket *server_socket, Socket *client_socket);
+CH_CAPI_EXPORT int socket_bind(Socket *socket, int port);
+CH_CAPI_EXPORT int socket_listen(Socket *socket, int backlog);
+CH_CAPI_EXPORT int socket_accept(Socket *server_socket, Socket *client_socket);
 // client socket
 // connect -> send -> recv
-int socket_connect(Socket *socket, const char *server_ip, int server_port);
+CH_CAPI_EXPORT int socket_connect(Socket *socket, const char *server_ip, int server_port);
 
 // common
-int socket_create(Socket *s);
-ssize_t socket_nsend(Socket *socket, const char *data, int n);
-ssize_t socket_send(Socket *socket, const char *data);
-ssize_t socket_receive(Socket *socket, char *buffer, size_t buffer_size);
-void socket_close(Socket *socket);
+CH_CAPI_EXPORT int socket_create(Socket *s);
+CH_CAPI_EXPORT ssize_t socket_nsend(Socket *socket, const char *data, int n);
+CH_CAPI_EXPORT ssize_t socket_send(Socket *socket, const char *data);
+CH_CAPI_EXPORT ssize_t socket_receive(Socket *socket, char *buffer, size_t buffer_size);
+CH_CAPI_EXPORT void socket_close(Socket *socket);
 
 // pool
-void socket_pool_init(SocketPool *pool);
-void socket_pool_add(SocketPool *pool, int sockfd, struct sockaddr_in addr);
-void socket_pool_remove(SocketPool *pool, int index);
+CH_CAPI_EXPORT void socket_pool_init(SocketPool *pool);
+CH_CAPI_EXPORT void socket_pool_add(SocketPool *pool, int sockfd, struct sockaddr_in addr);
+CH_CAPI_EXPORT void socket_pool_remove(SocketPool *pool, int index);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

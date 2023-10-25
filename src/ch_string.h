@@ -1,5 +1,11 @@
 #ifndef _CH_STRING_H
 #define _CH_STRING_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include "ch_macro.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -30,25 +36,24 @@ typedef struct ch_str_t {
   printf("ch_str: %.*s own:%d mutable:%d len:%d capacity:%d\n", cstr.len,      \
          cstr.str, cstr.own, cstr.is_mutable, cstr.len, cstr.capacity)
 
-char *ch_fmt(const char *format, ...);
-char *ch_append_fmt(char **str, const char *format, ...);
-
-ch_str_t ch_str_new(unsigned int init_size);
-void ch_str_free(ch_str_t *str);
-
-int ch_str_own(const ch_str_t str);
-int ch_str_empty(const ch_str_t str);
-
-void ch_str_append(ch_str_t *str, const char *s, ...);
-ch_str_t ch_str_tk(ch_str_t *str, const char *sep);
-
-
-ch_str_t ch_str_range(const ch_str_t str, int start, int end);
-int ch_str_cmp(const ch_str_t str1, const ch_str_t str2);
-int ch_str_ccmp(const ch_str_t str1, const char * cstr2);
+CH_CAPI_EXPORT char *ch_fmt(const char *format, ...);
+CH_CAPI_EXPORT char *ch_append_fmt(char **str, const char *format, ...);
+CH_CAPI_EXPORT ch_str_t ch_str_new(unsigned int init_size);
+CH_CAPI_EXPORT void ch_str_free(ch_str_t *str);
+CH_CAPI_EXPORT int ch_str_own(const ch_str_t str);
+CH_CAPI_EXPORT int ch_str_empty(const ch_str_t str);
+CH_CAPI_EXPORT void ch_str_append(ch_str_t *str, const char *s, ...);
+CH_CAPI_EXPORT ch_str_t ch_str_tk(ch_str_t *str, const char *sep);
+CH_CAPI_EXPORT ch_str_t ch_str_range(const ch_str_t str, int start, int end);
+CH_CAPI_EXPORT int ch_str_cmp(const ch_str_t str1, const ch_str_t str2);
+CH_CAPI_EXPORT int ch_str_ccmp(const ch_str_t str1, const char *cstr2);
 
 #define CH_STR_TOKEN(INPUT, DELIMS, CUR)                                       \
   for (ch_str_t t_##CUR = INPUT, CUR = ch_str_tk(&t_##CUR, DELIMS); CUR.str;   \
        CUR = ch_str_tk(&t_##CUR, DELIMS))
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

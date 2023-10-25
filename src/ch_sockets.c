@@ -1,5 +1,6 @@
 #include "ch_sockets.h"
 
+const int kBufferSize = 1024;
 int socket_create(Socket *s) {
   s->sockfd = socket(AF_INET, SOCK_STREAM, 0);
   return s->sockfd;

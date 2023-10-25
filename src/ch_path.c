@@ -9,7 +9,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-char *get_user_path(const char *sub_path) {
+char *ch_get_user_path(const char *sub_path) {
   char *home_dir = getenv("HOME"); // Linux 和 Mac OS X
   if (home_dir == NULL) {
     home_dir = getenv("USERPROFILE"); // Windows
@@ -23,7 +23,7 @@ char *get_user_path(const char *sub_path) {
   return path;
 }
 
-int is_dir(const char *path) {
+int ch_is_dir(const char *path) {
   if (path == NULL) {
     return 0;
   }
@@ -38,7 +38,7 @@ int is_dir(const char *path) {
   return 0;
 }
 
-char *expanduser(const char *path) {
+char *ch_expanduser(const char *path) {
   if (path == NULL)
     return NULL;
 
@@ -52,7 +52,6 @@ char *expanduser(const char *path) {
         home = pw->pw_dir;
     }
 #endif
-
     if (home != NULL) {
       size_t len = strlen(home) + strlen(path) - 1;
       char *expanded_path = (char *)malloc(len + 1);
@@ -60,6 +59,5 @@ char *expanduser(const char *path) {
       return expanded_path;
     }
   }
-
   return strdup(path);
 }

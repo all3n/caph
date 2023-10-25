@@ -7,7 +7,17 @@ project (caph
   LANGUAGES C
 )
 
+set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_C_STANDARD 11)
+option(BUILD_STATIC "Build STATIC library" OFF)
+
+# 根据构建类型设置编译选项
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g -O0")
+elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
+    set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O3")
+endif()
+
 
 file(GLOB_RECURSE SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.c")
 file(GLOB_RECURSE TEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/tests/*.c")
@@ -20,11 +30,25 @@ if (DEBUG)
 endif()
 
 
-
-
 include_directories(src)
 
-add_library(${PROJECT} SHARED ${SOURCES})
+if(BUILD_STATIC)
+    add_library(${PROJECT} STATIC ${SOURCES})
+    set_target_properties(${PROJECT} PROPERTIES LINKER_LANGUAGE C)
+    set_target_properties(${PROJECT} PROPERTIES ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/static)
+else()
+    add_library(${PROJECT} SHARED ${SOURCES})
+    set_target_properties(${PROJECT} PROPERTIES LINKER_LANGUAGE C)
+    set_target_properties(${PROJECT} PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/shared)
+endif()
+# for WIN32 export
+target_compile_definitions(${PROJECT} PRIVATE CH_COMPILE_LIBRARY)
+if(APPLE)
+  include_directories(/opt/homebrew/include)
+  link_directories(/opt/homebrew/lib)
+endif()
+target_link_libraries(${PROJECT} PRIVATE json-c curl microhttpd)
+
 
 
 foreach(TEST_SOURCE ${TEST_SOURCES})
@@ -32,3 +56,10 @@ foreach(TEST_SOURCE ${TEST_SOURCES})
     add_executable(${TEST_NAME} ${TEST_SOURCE})
     target_link_libraries(${TEST_NAME} ${PROJECT})
 endforeach(TEST_SOURCE)
+
+
+install(DIRECTORY src/ DESTINATION include)
+install(TARGETS ${PROJECT}
+        ARCHIVE DESTINATION lib
+        LIBRARY DESTINATION lib
+        RUNTIME DESTINATION bin)

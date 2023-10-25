@@ -1,9 +1,14 @@
 #ifndef _CH_OPTS_H
 #define _CH_OPTS_H
+
+#include "ch_macro.h"
 #include "hashmap.h"
 #include <stdbool.h>
 #include <stddef.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 struct ArgOpt;
 typedef struct ChArgParser {
   char *prog;
@@ -67,14 +72,16 @@ typedef struct ArgOpt {
 #define ARG_OBJ(obj, s_name, l_name, ...)                                      \
   &(ArgOpt) { obj, #s_name, #l_name, __VA_ARGS__ }
 
-int ch_parse_host(ChArgParser * parser, char *t_str, void *data);
-int ch_parse_port(ChArgParser * parser, char *t_str, void *data);
-void *ch_get_arg(struct ChArgParser *parser, char *name);
-void ch_print_help(ChArgParser *parser);
-void ch_print_opts(ChArgParser *parser);
-int ch_parser_args(struct ChArgParser *parser, int argc, char **argv);
-void ch_add_args(struct ChArgParser *parser, struct ArgOpt *opt);
-void ch_cleanup_args(struct ChArgParser *parser);
+CH_CAPI_EXPORT int ch_parse_host(ChArgParser *parser, char *t_str, void *data);
+CH_CAPI_EXPORT int ch_parse_port(ChArgParser *parser, char *t_str, void *data);
+CH_CAPI_EXPORT void *ch_get_arg(struct ChArgParser *parser, char *name);
+CH_CAPI_EXPORT void ch_print_help(ChArgParser *parser);
+CH_CAPI_EXPORT void ch_print_opts(ChArgParser *parser);
+CH_CAPI_EXPORT int ch_parser_args(struct ChArgParser *parser, int argc,
+                                  char **argv);
+CH_CAPI_EXPORT void ch_add_args(struct ChArgParser *parser, struct ArgOpt *opt);
+CH_CAPI_EXPORT void ch_cleanup_args(struct ChArgParser *parser);
+
 #define CH_PARSER(prog, desc, ...)                                             \
   {                                                                            \
     prog, desc, .AddArg = ch_add_args, .Parse = ch_parser_args,                \
@@ -82,4 +89,9 @@ void ch_cleanup_args(struct ChArgParser *parser);
   }
 
 #define CH_ADD_ARG(parser, opt) parser.AddArgument(&parser, opt)
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif

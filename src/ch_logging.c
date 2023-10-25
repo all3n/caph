@@ -29,4 +29,3 @@ int get_log_level() {
   }
   return LOG_LEVEL;
 }
-

@@ -3,6 +3,9 @@
 #include <stdlib.h>
 #include <string.h>
 int main(int argc, char *argv[]) {
+  if (argc != 2) {
+    exit(-1);
+  }
   const char *buffer = argv[1];
   char out[65] = {0};
   ChHashMD5(buffer, strlen(buffer), out);
