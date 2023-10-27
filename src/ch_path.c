@@ -1,4 +1,5 @@
 #include "ch_path.h"
+#include <dirent.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -60,4 +61,54 @@ char *ch_expanduser(const char *path) {
     }
   }
   return strdup(path);
+}
+
+char *ch_get_file_no_ext(const char *path) {
+  const char *p = strrchr(path, CH_PATH_SEP);
+  p = p ? p + 1 : path;
+  char *dp = strrchr(p, '.');
+  if (dp) {
+    return strndup(p, dp - p);
+  } else {
+    return strdup(p);
+  }
+}
+
+int ch_loop_dir(const char *dir, ch_path_callback callback, void *user_data) {
+  DIR *d = opendir(dir);
+  if (d == NULL) {
+    return -1;
+  }
+  struct dirent *de;
+  size_t dir_len = strlen(dir);
+  int need_append_slash = dir[dir_len - 1] != CH_PATH_SEP ? 1 : 0;
+  char sep[2] = {CH_PATH_SEP};
+  while ((de = readdir(d)) != NULL) {
+    if (strcmp(de->d_name, ".") == 0 || strcmp(de->d_name, "..") == 0) {
+      continue;
+    }
+    size_t len = dir_len + strlen(de->d_name) + (need_append_slash ? 2 : 1);
+    char *sub_path = (char *)malloc(len);
+    strcpy(sub_path, dir);
+    if (need_append_slash) {
+      strcat(sub_path, sep);
+    }
+    strcat(sub_path, de->d_name);
+    sub_path[len - 1] = '\0';
+    if (de->d_type == DT_REG) {
+      printf("name:%s type:%d\n", de->d_name, de->d_type);
+      if (callback(sub_path, de->d_name, de->d_type, user_data) != 0) {
+        free(sub_path);
+        break;
+      }
+    } else if (de->d_type == DT_DIR) {
+      if (ch_loop_dir(sub_path, callback, user_data) != 0) {
+        free(sub_path);
+        break;
+      }
+    }
+    free(sub_path);
+  }
+  closedir(d);
+  return 0;
 }

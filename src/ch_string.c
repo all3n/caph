@@ -1,4 +1,5 @@
 #include "ch_string.h"
+#include "ch_logging.h"
 #include <assert.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -69,7 +70,7 @@ void ch_str_append(ch_str_t *str, const char *format, ...) {
     va_end(args);
     if (str->len + len > str->capacity * CH_STRING_GROW_RATE) {
       str->capacity = (str->len + len) * CH_STRING_GROW_FACTOR;
-      printf("str->capacity = %d\n", str->capacity);
+      XLOG(DEBUG, "str->capacity = %d", str->capacity);
       str->str = (char *)realloc(str->str, str->capacity);
     }
     va_start(args, format);

@@ -10,6 +10,7 @@ project (caph
 set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_C_STANDARD 11)
 option(BUILD_STATIC "Build STATIC library" OFF)
+option(ENABLE_TESTS "ENABLE TESTS" ON)
 
 # 根据构建类型设置编译选项
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -17,6 +18,8 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
     set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O3")
 endif()
+# tools
+add_executable(compile_res tools/res_compile.c src/ch_zlib.c src/ch_path.c)
 
 
 file(GLOB_RECURSE SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.c")
@@ -50,12 +53,16 @@ endif()
 target_link_libraries(${PROJECT} PRIVATE json-c curl microhttpd)
 
 
+if (ENABLE_TESTS)
+  enable_testing()
 
-foreach(TEST_SOURCE ${TEST_SOURCES})
-    get_filename_component(TEST_NAME ${TEST_SOURCE} NAME_WE)
-    add_executable(${TEST_NAME} ${TEST_SOURCE})
-    target_link_libraries(${TEST_NAME} ${PROJECT})
-endforeach(TEST_SOURCE)
+  foreach(TEST_SOURCE ${TEST_SOURCES})
+      get_filename_component(TEST_NAME ${TEST_SOURCE} NAME_WE)
+      add_executable(${TEST_NAME} ${TEST_SOURCE})
+      target_link_libraries(${TEST_NAME} ${PROJECT})
+      add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
+  endforeach(TEST_SOURCE)
+endif()
 
 
 install(DIRECTORY src/ DESTINATION include)
