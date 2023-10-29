@@ -94,7 +94,9 @@ ch_str_t ch_str_tk(ch_str_t *str, const char *sep) {
   if (!str->str) {
     return token;
   }
-  char *p = strnstr(str->str, sep, str->len);
+  //char *p = strnstr(str->str, sep, str->len);
+  // TODO
+  char *p = strstr(str->str, sep);
   if (p) {
     token.str = str->str;
     token.len = p - str->str;
