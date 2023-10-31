@@ -53,6 +53,11 @@ struct Page {
   PageHandler handler;
   const void *handler_cls;
 };
+struct json_response {
+  struct json_object *data;
+  int code;
+  char *message;
+};
 
 typedef struct ch_web {
   void *data;
@@ -65,6 +70,7 @@ typedef struct ch_web {
   int port;
 } ch_web;
 
+void free_json_response(struct json_response **data);
 void ch_web_init(struct ch_web *web);
 void ch_web_add_page(struct ch_web *web, struct Page *page);
 void ch_web_start(struct ch_web *web, int wait);
@@ -73,6 +79,11 @@ int ch_web_auth(struct MHD_Connection *connection);
 
 ch_web_ret ch_web_static_handler(ch_web *self, const void *cls,
                                  ch_web_con *conn, ch_web_res **res);
+#define auto_res(res)                                                          \
+  __attribute__((cleanup(free_json_response))) struct json_response *res =     \
+      malloc(sizeof(struct json_response));                                    \
+  memset(res, 0, sizeof(struct json_response));                                \
+  res->data = json_object_new_object()
 
 #define MAKE_CH_WEB(...)                                                       \
   { .auth = ch_web_auth, __VA_ARGS__ }

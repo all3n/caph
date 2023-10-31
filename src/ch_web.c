@@ -1,6 +1,8 @@
 #include "ch_web.h"
+#include "ch_json.h"
 #include "ch_logging.h"
 #include "ch_string.h"
+#include "json-c/json.h"
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,57 +11,13 @@
 
 #define WEB_FAVICON "/favicon.ico"
 #define _H(HTML) HTML "\n"
+#define DEFAULT_PAGE "/index.html"
 
 pthread_key_t thread_key;
 struct web_thread_data {
   ch_str_t buf;
 };
 
-#define VUE_JS                                                                 \
-  "<script src=\"https://unpkg.com/vue@3/dist/vue.global.js\"></script>"
-
-/***
-
-<div id="app">{{ message }}</div>
-
-<script>
-  const { createApp, ref } = Vue
-
-  createApp({
-    setup() {
-      const message = ref('Hello vue!')
-      return {
-        message
-      }
-    }
-  }).mount('#app')
-</script>
-
-
-*/
-enum MHD_Result index_handler(ch_web *self, const void *cls,
-                              struct MHD_Connection *connection,
-                              struct MHD_Response **response) {
-  struct web_thread_data *wtd =
-      (struct web_thread_data *)pthread_getspecific(thread_key);
-  if (wtd == NULL) {
-    wtd = (struct web_thread_data *)malloc(sizeof(struct web_thread_data));
-    wtd->buf = ch_str_new(100);
-    pthread_setspecific(thread_key, wtd);
-  }
-  ch_str_t *buf = &wtd->buf;
-  buf->len = 0;
-  ch_str_append(buf, VUE_JS);
-  ch_str_append(buf, _H("<div id=\"app\">{{ message }}</div>"));
-  ch_str_append(
-      buf,
-      _H("<script>") _H("  const { createApp, ref } = Vue") _H("  createApp({")
-          _H("    setup() {") _H("      const message = ref('Hello vue!')")
-              _H("      return {") _H("        message") _H("      }")
-                  _H("    }") _H("  }).mount('#app')") _H("</script>"));
-  CH_WEB_NCSTR_TO_RES(response, buf->str, buf->len);
-  return MHD_queue_response(connection, MHD_HTTP_OK, *response);
-}
 enum MHD_Result default_handler(ch_web *self, const void *cls,
                                 struct MHD_Connection *connection,
                                 struct MHD_Response **response) {
@@ -71,10 +29,48 @@ enum MHD_Result default_handler(ch_web *self, const void *cls,
                                               MHD_RESPMEM_MUST_COPY);
   return MHD_queue_response(connection, MHD_HTTP_OK, *response);
 }
+void free_json_response(struct json_response **data) {
+  if (*data == NULL) {
+    return;
+  }
+  struct json_response *response = *(struct json_response **)data;
+  if (response->message != NULL) {
+    free(response->message);
+    response->message = NULL;
+  }
+  free(response);
+  *data = NULL;
+}
+struct json_object *res_to_json(struct json_response *res) {
+  struct json_object *json = json_object_new_object();
+  json_object_object_add(json, "data", res->data);
+  json_object_object_add(json, "code", json_object_new_int(200));
+  if (res->message != NULL) {
+    json_object_object_add(json, "message",
+                           json_object_new_string(res->message));
+  }
+  return json;
+}
+
+enum MHD_Result json_handler(ch_web *self, const void *cls,
+                             struct MHD_Connection *connection,
+                             struct MHD_Response **response) {
+  struct Page *page = (struct Page *)cls;
+  (void)page;
+  auto_res(res);
+  json_set_s(res->data, "name", "John");
+  json_set_i(res->data, "age", 30);
+  json_set_b(res->data, "active", 1);
+  auto_json json = res_to_json(res);
+  const char *json_str = json_object_to_json_string(json);
+  *response = MHD_create_response_from_buffer(
+      strlen(json_str), (void *)json_str, MHD_RESPMEM_MUST_COPY);
+  return MHD_queue_response(connection, MHD_HTTP_OK, *response);
+}
 
 static struct Page pages[] = {
-    {"/", CH_WEB_METHOD_GET, "text/html", index_handler, NULL},
     {"/404", CH_WEB_METHOD_GET, "text/html", default_handler, NULL},
+    {"/json", CH_WEB_METHOD_GET, "text/html", json_handler, NULL},
     {NULL} // END
 };
 
@@ -103,11 +99,16 @@ static enum MHD_Result ch_web_router(struct ch_web *web,
                                      struct MHD_Connection *conn,
                                      const char *path, const char *method,
                                      void **con_cls) {
-  if (!strcmp(path, WEB_FAVICON)) {
-    return MHD_NO;
-  }
+  // if (!strcmp(path, WEB_FAVICON)) {
+    // return MHD_NO;
+  // }
+  printf("router: %s\n", path);
   struct Page *page =
       (struct Page *)hashmap_get(web->pages, &(struct Page){.url = path});
+  if (page == NULL && strcmp(path, "/") == 0) {
+    page = (struct Page *)hashmap_get(web->pages,
+                                      &(struct Page){.url = DEFAULT_PAGE});
+  }
   enum MHD_Result result = MHD_NO;
   if (page == NULL) {
     page = web->default_page;
@@ -198,8 +199,10 @@ void ch_web_start(struct ch_web *web, int wait) {
   web->daemon =
       MHD_start_daemon(MHD_USE_AUTO_INTERNAL_THREAD, web->port, NULL, NULL,
                        web->handler_callback, web, MHD_OPTION_END);
-  if (NULL == web->daemon)
+  if (NULL == web->daemon) {
+    XLOG(ERROR, "MHD_start_daemon failed");
     return;
+  }
   if (wait) {
     getchar();
   }

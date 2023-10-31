@@ -11,7 +11,7 @@
   "#ifndef _RES_%d_H\n#define _RES_%d_H\n#include <stdlib.h>\n#include "       \
   "\"compile.h\"\n"
 #define HEADER_END "\n#endif"
-#define RES_STRUCT_FMT "  {\"%s\", CH_RES_%s, %lu, %lu, CH_RES_COMPRESS_%s},\n"
+#define RES_STRUCT_FMT "  {\"/%s\", %s, %lu, %lu, CH_RES_COMPRESS_%s},\n"
 static FILE *output;
 
 typedef struct compile_arg {
@@ -40,18 +40,8 @@ void parse_args(int argc, char *argv[], c_args *args) {
     }                                                                          \
   } while (0)
 
-void convert_name(char *str) {
-  size_t len = strlen(str);
-  for (size_t i = 0; i < len; i++) {
-    if (isalpha(str[i])) {
-      str[i] = toupper(str[i]);
-    } else if (str[i] == '.') {
-      str[i] = '_';
-    }
-  }
-}
 struct ch_compile_res {
-  const char *name;
+  char *name;
   char *macro_name;
   unsigned long len;
   unsigned long compress_len;
@@ -75,6 +65,7 @@ void free_link(struct Node *node) {
   while (node != NULL) {
     struct Node *tmp = node;
     if (tmp->data) {
+      free(tmp->data->name);
       free(tmp->data->macro_name);
       free(tmp->data);
       tmp->data = NULL;
@@ -84,7 +75,9 @@ void free_link(struct Node *node) {
   }
 }
 
-void convert_file(const char *input_file, FILE *output, const char *compress) {
+void convert_file(const char *input_file, const char *sub_path, FILE *output,
+                  const char *compress) {
+  static int idx = 0;
   FILE *input = fopen(input_file, "rb");
   CHECK_OPEN(input);
   fseek(input, 0, SEEK_END);
@@ -100,9 +93,13 @@ void convert_file(const char *input_file, FILE *output, const char *compress) {
     ctype = "ZLIB";
   }
 
-  char *input_name = ch_get_file_no_ext(input_file);
-  convert_name(input_name);
-  fprintf(output, "#define CH_RES_%s  \"", input_name);
+  char * dsub_path = strdup(sub_path);
+  ch_convert_dot_to_underscore(dsub_path);
+  char *macro_name = NULL;
+  ch_append_fmt(&macro_name, "CH_RES_%d_%s", idx++, dsub_path);
+  free(dsub_path);
+
+  fprintf(output, "#define %s \"", macro_name);
 
   if (c_data) {
     // compress
@@ -118,8 +115,8 @@ void convert_file(const char *input_file, FILE *output, const char *compress) {
   fprintf(output, "\"\n");
   struct ch_compile_res *res = malloc(sizeof(struct ch_compile_res));
   memset(res, 0, sizeof(struct ch_compile_res));
-  res->name = input_file;
-  res->macro_name = input_name;
+  res->name = strdup(sub_path);
+  res->macro_name = macro_name;
   res->len = file_size;
   res->compress_len = output_size;
   res->compress_name = ctype;
@@ -131,11 +128,15 @@ void convert_file(const char *input_file, FILE *output, const char *compress) {
   fclose(input);
 }
 
-int loop_callback(const char *path, const char *name, int flags,
-                  void *user_data) {
+int loop_callback(const char *path, const char *sub_path, const char *name,
+                  int flags, void *user_data) {
+  // skip hidden files
+  if (name[0] == '.') {
+    return 0;
+  }
   c_args *args = (c_args *)user_data;
-  printf("convert %s\n", path);
-  convert_file(path, output, args->compress);
+  printf("convert %s:%s:%s %d\n", path, sub_path, name, flags);
+  convert_file(path, sub_path, output, args->compress);
   return 0;
 }
 
@@ -154,9 +155,10 @@ int main(int argc, char *argv[]) {
   CHECK_OPEN(output);
   fprintf(output, HEADER_COMMON, rnd_version, rnd_version);
   if (ch_is_dir(args.input)) {
-    ch_loop_dir(args.input, loop_callback, &args);
-  } else {
-    convert_file(args.input, output, args.compress);
+    ch_loop_dir(args.input, NULL, loop_callback, &args); } else {
+    char *fname = ch_get_file_name(args.input);
+    convert_file(args.input, fname, output, args.compress);
+    free(fname);
   }
 
   fprintf(output, "\nstruct ch_res_t CH_COMPILE_RES[] = {\n");

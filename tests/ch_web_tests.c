@@ -1,4 +1,5 @@
 #include "ch_logging.h"
+#include "ch_res_public.h"
 #include "ch_string.h"
 #include "ch_web.h"
 #include <stdio.h>
@@ -79,11 +80,8 @@ ch_web_ret test2_handler(struct ch_web *self, const void *cls, ch_web_con *conn,
   return CH_WEB_RES_OK(conn, res);
 }
 
-#define HTML_PAGE2 "<html><body>Hello page2</body></html>"
-#define HTML_PAGE3 "<html><body>Hello page3</body></html>"
-#define HTML_PAGE4 "<html><body>Hello page4</body></html>"
-
 int main(int argc, char *argv[]) {
+
   ch_web web = MAKE_CH_WEB(.port = 9999);
   struct MonitorVars vars = {};
   web.data = &vars;
@@ -94,16 +92,13 @@ int main(int argc, char *argv[]) {
   hashmap_set(vars.vars, &(struct KV){.key = "argv",
                                       .str_arr = {argv, &argc},
                                       .type = T_STRING_PTR});
-
   ch_web_init(&web);
-  web.add_page(&web, &(struct Page){"/test", CH_WEB_METHOD_GET, "text/html",
-                                    test_handler, NULL});
-  web.add_page(&web, &(struct Page){"/page2", CH_WEB_METHOD_GET, "text/html",
-                                    test2_handler, HTML_PAGE2});
-  web.add_page(&web, &(struct Page){"/page3", CH_WEB_METHOD_GET, "text/html",
-                                    ch_web_static_handler, HTML_PAGE3});
-  web.add_page(&web, STATIC_PAGE(/fff, HTML_PAGE4);
-
+  for (int i = 0; CH_COMPILE_RES[i].name != NULL; i++) {
+    printf("%s\n", CH_COMPILE_RES[i].name);
+    web.add_page(&web, &(struct Page){CH_COMPILE_RES[i].name, CH_WEB_METHOD_GET,
+                                      "text/html", ch_web_static_handler,
+                                      CH_COMPILE_RES[i].value});
+  }
   ch_web_start(&web, 1);
   ch_web_destory(&web);
   return EXIT_SUCCESS;

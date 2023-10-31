@@ -53,11 +53,22 @@ ch_str_t ch_str_new(unsigned int init_size) {
   str.own = 1;
   return str;
 }
-void ch_str_free(ch_str_t *str) {
+
+void ch_str_free(struct ch_str_t *str) {
   if (str && str->own) {
+    // printf("free %.*s\n", str->len, str->str);
     free(str->str);
+    str->str = NULL;
   }
 }
+
+void ch_cstr_free(char **cstr) {
+  if (*cstr != NULL) {
+    free(*cstr);
+    *cstr = NULL;
+  }
+}
+
 int ch_str_own(const ch_str_t str) { return str.own; }
 int ch_str_empty(const ch_str_t str) { return str.len == 0; }
 
@@ -94,8 +105,8 @@ ch_str_t ch_str_tk(ch_str_t *str, const char *sep) {
   if (!str->str) {
     return token;
   }
-  //char *p = strnstr(str->str, sep, str->len);
-  // TODO
+  // char *p = strnstr(str->str, sep, str->len);
+  //  TODO
   char *p = strstr(str->str, sep);
   if (p) {
     token.str = str->str;
