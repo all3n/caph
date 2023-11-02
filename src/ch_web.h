@@ -1,7 +1,9 @@
 #ifndef _CH_WEB_H
 #define _CH_WEB_H
+
 #include "hashmap.h"
 #include <microhttpd.h>
+#include <pthread.h>
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -42,6 +44,7 @@ typedef enum MHD_Result ch_web_ret;
 #define STATIC_PAGE(url, content) &(struct Page){#url, CH_WEB_METHOD_GET, "text/html", \
                                     ch_web_static_handler, content});
 
+typedef void *(*thread_func_t)(void *);
 struct ch_web;
 typedef enum MHD_Result (*PageHandler)(struct ch_web *self, const void *cls,
                                        struct MHD_Connection *connection,
@@ -67,8 +70,11 @@ typedef struct ch_web {
   struct hashmap *pages;
   struct Page *default_page;
   void (*add_page)(struct ch_web *web, struct Page *page);
+  int status;
   int port;
+  pthread_t token_thread_id;
 } ch_web;
+
 
 void free_json_response(struct json_response **data);
 void ch_web_init(struct ch_web *web);

@@ -11,6 +11,24 @@ set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_C_STANDARD 11)
 option(BUILD_STATIC "Build STATIC library" OFF)
 option(ENABLE_TESTS "ENABLE TESTS" ON)
+option(ENABLE_CROSS_WIN "CROSS WIN USE MINGW" OFF)
+set(CROSS_TOOLCHAIN toolchain-x86_64)
+
+if(APPLE)
+  include_directories(/opt/homebrew/include)
+  link_directories(/opt/homebrew/lib)
+  if(ENABLE_CROSS_WIN)
+    message(STATUS "CROSS WIN USE MINGW")
+    set(MINGW_BASE /opt/homebrew/opt/mingw-w64)
+    include_directories(${MINGW_BASE}/${CROSS_TOOLCHAIN}/include)
+    link_directories(${MINGW_BASE}/${CROSS_TOOLCHAIN}/lib)
+    set(CMAKE_C_COMPILER "${MINGW_BASE}/${CROSS_TOOLCHAIN}/bin/x86_64-w64-mingw32-gcc")
+    set(CMAKE_C_FLAGS "-march=x86-64")
+  endif()
+endif()
+
+
+
 
 include(cmake/thirdparty.cmake)
 # 根据构建类型设置编译选项
@@ -23,7 +41,11 @@ endif()
 add_executable(compile_res tools/res_compile.c src/ch_zlib.c src/ch_path.c src/ch_string.c src/ch_logging.c)
 
 
-file(GLOB_RECURSE SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.c")
+# file(GLOB_RECURSE SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.c")
+set(SOURCES 
+  src/ch_curl_utils.c src/ch_md5.c        src/ch_path.c       src/ch_string.c     src/ch_zlib.c
+  src/ch_logging.c    src/ch_opts.c       src/ch_sockets.c    src/ch_web.c        src/hashmap.c
+)
 file(GLOB_RECURSE TEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/tests/*tests.c")
 set(TEST_COMMON tests/tests_common.c)
 if (DEBUG)
@@ -36,11 +58,19 @@ endif()
 
 
 file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/public)
-execute_process(
-  COMMAND ${CMAKE_BINARY_DIR}/compile_res -i ${CMAKE_CURRENT_SOURCE_DIR}/public/dist -o ${CMAKE_BINARY_DIR}/public/ch_res_public.h
-    RESULT_VARIABLE result
-    OUTPUT_VARIABLE output
+add_custom_command(
+    OUTPUT ${CMAKE_BINARY_DIR}/public/ch_res_public.h
+    COMMAND ${CMAKE_BINARY_DIR}/compile_res -i ${CMAKE_CURRENT_SOURCE_DIR}/public/dist -o ${CMAKE_BINARY_DIR}/public/ch_res_public.h
+    DEPENDS ${CMAKE_BINARY_DIR}/compile_res
+    COMMENT "compile res"
 )
+add_custom_target(RES_HEAD DEPENDS ${CMAKE_BINARY_DIR}/public/ch_res_public.h)
+
+#execute_process(
+#  COMMAND ${CMAKE_BINARY_DIR}/compile_res -i ${CMAKE_CURRENT_SOURCE_DIR}/public/dist -o ${CMAKE_BINARY_DIR}/public/ch_res_public.h
+#    RESULT_VARIABLE result
+#    OUTPUT_VARIABLE output
+#)
 include_directories(src)
 include_directories(${CMAKE_BINARY_DIR}/public)
 
@@ -53,14 +83,10 @@ else()
     set_target_properties(${PROJECT} PROPERTIES LINKER_LANGUAGE C)
     set_target_properties(${PROJECT} PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/shared)
 endif()
+add_dependencies(${PROJECT} RES_HEAD)
 # for WIN32 export
 target_compile_definitions(${PROJECT} PRIVATE CH_COMPILE_LIBRARY)
-if(APPLE)
-  include_directories(/opt/homebrew/include)
-  link_directories(/opt/homebrew/lib)
-endif()
 target_link_libraries(${PROJECT} PRIVATE json-c curl microhttpd)
-
 
 
 if (ENABLE_TESTS)

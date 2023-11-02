@@ -2,17 +2,19 @@
 #include "ch_string.h"
 #include <assert.h>
 #include <ctype.h>
-#include <dirent.h>
 #include <stdarg.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#ifdef __unix__
-#include <pwd.h>
-#endif
-#include <stdio.h>
 #include <sys/stat.h>
+
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <dirent.h>
+#include <pwd.h>
 #include <unistd.h>
+#endif
 
 char *ch_get_user_path(const char *sub_path) {
   char *home_dir = getenv("HOME"); // Linux 和 Mac OS X
@@ -35,9 +37,9 @@ void ch_convert_dot_to_underscore(char *str) {
       str[i] = toupper(str[i]);
     } else if (str[i] == '.') {
       str[i] = '_';
-    } else if(str[i] == '/') {
+    } else if (str[i] == '/') {
       str[i] = '_';
-    } else if(str[i] == '-') {
+    } else if (str[i] == '-') {
       str[i] = '_';
     }
   }
@@ -139,12 +141,18 @@ ch_str_t ch_path_join(const char *base, ...) {
   out.str[out.len] = '\0';
   return out;
 }
+
+#ifdef _WIN32
+// TODO not supported
+int ch_loop_dir(const char *root, const char *sub_path,
+                ch_path_callback callback, void *user_data) {
+
+  return 0;
+}
+#else
 int ch_loop_dir(const char *root, const char *sub_path,
                 ch_path_callback callback, void *user_data) {
   ch_str_t abs_path = ch_cstr(root);
-  // if (sub_path) {
-    // abs_path = ch_path_join(root, sub_path, NULL);
-  // }
   DIR *d = opendir(abs_path.str);
   if (d == NULL) {
     ch_str_free(&abs_path);
@@ -158,7 +166,7 @@ int ch_loop_dir(const char *root, const char *sub_path,
     }
     ch_str_t d_str = ch_path_join(abs_path.str, de->d_name, NULL);
     ch_str_t d_path_str = ch_cstr(de->d_name);
-    if(sub_path){
+    if (sub_path) {
       d_path_str = ch_path_join(sub_path, de->d_name, NULL);
     }
     if (de->d_type == DT_REG) {
@@ -186,3 +194,4 @@ int ch_loop_dir(const char *root, const char *sub_path,
   printf("flag:%d\n", ret);
   return ret;
 }
+#endif

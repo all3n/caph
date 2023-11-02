@@ -1,8 +1,10 @@
 #include "ch_web.h"
+#include "ch_hash.h"
 #include "ch_json.h"
 #include "ch_logging.h"
 #include "ch_string.h"
 #include "json-c/json.h"
+#include <assert.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -100,7 +102,7 @@ static enum MHD_Result ch_web_router(struct ch_web *web,
                                      const char *path, const char *method,
                                      void **con_cls) {
   // if (!strcmp(path, WEB_FAVICON)) {
-    // return MHD_NO;
+  // return MHD_NO;
   // }
   printf("router: %s\n", path);
   struct Page *page =
@@ -163,26 +165,29 @@ enum MHD_Result answer_to_connection(void *cls,
   MHD_destroy_response(response);
   return ret;
 }
-// hash Page hash use
-static uint64_t hash_str(const void *item, uint64_t seed0, uint64_t seed1) {
-  struct Page *page = (struct Page *)item;
-  return hashmap_xxhash3(page->url, strlen(page->url), seed0, seed1);
-}
-static int compare_strs(const void *a, const void *b, void *udata) {
-  struct Page *page_a = (struct Page *)a;
-  struct Page *page_b = (struct Page *)b;
-  return strcmp(page_a->url, page_b->url);
-}
 
+HASH_STR(struct Page, url)
+HASH_COMPARE_STR(struct Page, url)
+
+static void *token_thread(void *data) {
+  ch_web *web = (ch_web *)data;
+  while (web->status) {
+    XLOG(INFO, "check token");
+    usleep(1000 * 1000);
+  }
+  return NULL;
+}
 void ch_web_init(struct ch_web *web) {
   srand(time(NULL));
   pthread_key_create(&thread_key, NULL);
+  web->status = 1;
   web->handler_callback = answer_to_connection;
   web->add_page = ch_web_add_page;
+  int result = pthread_create(&web->token_thread_id, NULL, token_thread, web);
+  assert(result == 0);
   uint64_t seed = rand() % INT64_MAX;
   // config page handler callback
-  web->pages = hashmap_new(sizeof(struct Page), 0, seed, seed, hash_str,
-                           compare_strs, NULL, NULL);
+  web->pages = CH_HASH(struct Page, url, seed);
 
   for (int i = 0; pages[i].url != NULL; i++) {
     hashmap_set(web->pages, &pages[i]);
@@ -207,7 +212,11 @@ void ch_web_start(struct ch_web *web, int wait) {
     getchar();
   }
 }
-void ch_web_destory(struct ch_web *web) { MHD_stop_daemon(web->daemon); }
+void ch_web_destory(struct ch_web *web) {
+  web->status = 0;
+  pthread_join(web->token_thread_id, NULL);
+  MHD_stop_daemon(web->daemon);
+}
 
 ch_web_ret ch_web_static_handler(struct ch_web *self, const void *cls,
                                  ch_web_con *conn, ch_web_res **res) {
