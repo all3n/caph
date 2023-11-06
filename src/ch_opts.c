@@ -7,11 +7,11 @@
 #include <string.h>
 #include <unistd.h>
 
-int ch_parse_host(ChArgParser *parser, char *t_str, void *data) {
+int ch_parse_host(ch_arg_parser *parser, char *t_str, void *data) {
   *(char **)data = t_str;
   return 0;
 }
-int ch_parse_port(ChArgParser *parser, char *t_str, void *data) {
+int ch_parse_port(ch_arg_parser *parser, char *t_str, void *data) {
   int port = atoi(t_str);
   if (port <= 0 || port > 65535) {
     ch_append_fmt(&parser->error_msg, "Invalid port: %s (0,65535)\n", t_str);
@@ -20,7 +20,7 @@ int ch_parse_port(ChArgParser *parser, char *t_str, void *data) {
   *(int *)data = port;
   return 0;
 }
-const char *arg_type_to_str(ArgOptType t) {
+const char *arg_type_to_str(arg_opt_type t) {
   switch (t) {
   case kArgString:
     return "string";
@@ -39,14 +39,14 @@ const char *arg_type_to_str(ArgOptType t) {
   }
 }
 
-void ch_print_help(ChArgParser *parser) {
+void ch_print_help(ch_arg_parser *parser) {
   fprintf(stderr, "Usage: %s [options]\n%s", parser->prog, parser->description);
   fprintf(stderr, "\n");
   fprintf(stderr, "Options:\n");
   size_t idx = 0;
   void *item = NULL;
   while (hashmap_iter(parser->opts_map, &idx, &item)) {
-    ArgOpt *opt = (ArgOpt *)item;
+    arg_opt *opt = (arg_opt *)item;
     fprintf(stderr, "  -%s,--%s %s %s", opt->s_name, opt->l_name,
             arg_type_to_str(opt->type),
             opt->required ? "required" : "optional");
@@ -57,12 +57,12 @@ void ch_print_help(ChArgParser *parser) {
   }
   fprintf(stderr, "\n");
 }
-void ch_print_opts(ChArgParser *parser) {
+void ch_print_opts(ch_arg_parser *parser) {
   size_t idx = 0;
   void *item = NULL;
   printf("{\n");
   while (hashmap_iter(parser->opts_map, &idx, &item)) {
-    ArgOpt *opt = (ArgOpt *)item;
+    arg_opt *opt = (arg_opt *)item;
     printf("  %s:", opt->l_name);
     if (opt->arg_print) {
       opt->arg_print(opt->data);
@@ -96,7 +96,7 @@ void ch_print_opts(ChArgParser *parser) {
   printf("}\n");
 }
 
-static int ch_set_opt_value(ChArgParser *parser, ArgOpt *opt, char *value) {
+static int ch_set_opt_value(ch_arg_parser *parser, arg_opt *opt, char *value) {
   if (opt->func) {
     int ret = opt->func(parser, value, opt->data);
     opt->set_flag = true;
@@ -132,8 +132,8 @@ static int ch_set_opt_value(ChArgParser *parser, ArgOpt *opt, char *value) {
   opt->set_flag = true;
   return 0;
 }
-int ch_parser_args(struct ChArgParser *parser, int argc, char **argv) {
-  ArgOpt *opt = NULL;
+int ch_parser_args(struct ch_arg_parser *parser, int argc, char **argv) {
+  arg_opt *opt = NULL;
   ArgAlias *alias = NULL;
   char *name, *eqchr, *value;
   for (int i = 0; i < argc; ++i) {
@@ -158,8 +158,8 @@ int ch_parser_args(struct ChArgParser *parser, int argc, char **argv) {
         }
         name = alias->alias;
       }
-      opt = (struct ArgOpt *)hashmap_get(parser->opts_map,
-                                         &(struct ArgOpt){.l_name = name});
+      opt = (struct arg_opt *)hashmap_get(parser->opts_map,
+                                         &(struct arg_opt){.l_name = name});
       if (!opt) {
         ch_append_fmt(&parser->error_msg, "Unknown option: %s", name);
         return -1;
@@ -196,8 +196,8 @@ int ch_parser_args(struct ChArgParser *parser, int argc, char **argv) {
       }
       *eqchr = '\0';
       value = eqchr + 1;
-      opt = (struct ArgOpt *)hashmap_get(parser->opts_map,
-                                         &(struct ArgOpt){.l_name = name});
+      opt = (struct arg_opt *)hashmap_get(parser->opts_map,
+                                         &(struct arg_opt){.l_name = name});
       if (!opt) {
         ch_append_fmt(&parser->error_msg, "Unknown option: %s\n", name);
         return -1;
@@ -211,7 +211,7 @@ int ch_parser_args(struct ChArgParser *parser, int argc, char **argv) {
   size_t iter = 0;
   void *item;
   while (hashmap_iter(parser->opts_map, &iter, &item)) {
-    ArgOpt *opt = (ArgOpt *)item;
+    arg_opt *opt = (arg_opt *)item;
     if (!opt->set_flag && opt->required) {
       ch_append_fmt(&parser->error_msg, "Option %s/%s is required\n",
                     opt->s_name, opt->l_name);
@@ -229,8 +229,8 @@ int ch_parser_args(struct ChArgParser *parser, int argc, char **argv) {
   return 0;
 }
 static int arg_compare(const void *a, const void *b, void *udata) {
-  const struct ArgOpt *ua = a;
-  const struct ArgOpt *ub = b;
+  const struct arg_opt *ua = a;
+  const struct arg_opt *ub = b;
   return strcmp(ua->l_name, ub->l_name);
 }
 static int alias_compare(const void *a, const void *b, void *udata) {
@@ -240,13 +240,13 @@ static int alias_compare(const void *a, const void *b, void *udata) {
 }
 
 bool arg_iter(const void *item, void *udata) {
-  const struct ArgOpt *arg = item;
+  const struct arg_opt *arg = item;
   XLOG(INFO, "%s,%s ", arg->s_name, arg->l_name);
   return true;
 }
 
 static uint64_t arg_hash(const void *item, uint64_t seed0, uint64_t seed1) {
-  const struct ArgOpt *arg = item;
+  const struct arg_opt *arg = item;
   return hashmap_sip(arg->l_name, strlen(arg->l_name), seed0, seed1);
 }
 static uint64_t alias_hash(const void *item, uint64_t seed0, uint64_t seed1) {
@@ -254,9 +254,9 @@ static uint64_t alias_hash(const void *item, uint64_t seed0, uint64_t seed1) {
   return hashmap_sip(a->name, strlen(a->name), seed0, seed1);
 }
 
-void ch_add_args(struct ChArgParser *parser, struct ArgOpt *opt) {
+void ch_add_args(struct ch_arg_parser *parser, struct arg_opt *opt) {
   if (parser->opts_map == NULL) {
-    parser->opts_map = hashmap_new(sizeof(struct ArgOpt), 0, 0, 0, arg_hash,
+    parser->opts_map = hashmap_new(sizeof(struct arg_opt), 0, 0, 0, arg_hash,
                                    arg_compare, NULL, NULL);
     parser->alias = hashmap_new(sizeof(struct ArgAlias), 0, 0, 0, alias_hash,
                                 alias_compare, NULL, NULL);
@@ -267,9 +267,9 @@ void ch_add_args(struct ChArgParser *parser, struct ArgOpt *opt) {
               &(ArgAlias){.name = opt->s_name, .alias = opt->l_name});
 }
 
-void *ch_get_arg(struct ChArgParser *parser, char *name) {
-  struct ArgOpt *opt = (struct ArgOpt *)hashmap_get(
-      parser->opts_map, &(struct ArgOpt){.l_name = name});
+void *ch_get_arg(struct ch_arg_parser *parser, char *name) {
+  struct arg_opt *opt = (struct arg_opt *)hashmap_get(
+      parser->opts_map, &(struct arg_opt){.l_name = name});
   if (opt) {
     return opt->data;
   } else {
@@ -277,11 +277,11 @@ void *ch_get_arg(struct ChArgParser *parser, char *name) {
   }
 }
 
-void ch_cleanup_args(struct ChArgParser *parser) {
+void ch_cleanup_args(struct ch_arg_parser *parser) {
   size_t idx = 0;
   void *item = NULL;
   while (hashmap_iter(parser->opts_map, &idx, &item)) {
-    ArgOpt *opt = (ArgOpt *)item;
+    arg_opt *opt = (arg_opt *)item;
     if (opt->arg_free && opt->data) {
       opt->arg_free(opt->data);
     }

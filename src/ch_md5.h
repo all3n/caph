@@ -7,9 +7,9 @@
 extern "C" {
 #endif
 
-CH_CAPI_EXPORT void ChHashMD5(const char *key, unsigned int length,
+CH_CAPI_EXPORT void ch_hash_md5(const char *key, unsigned int length,
                               char *result);
-CH_CAPI_EXPORT ch_str_t ChHashMd5CStr(const char *key, unsigned int length);
+CH_CAPI_EXPORT ch_str_t ch_hash_md5_cstr(const char *key, unsigned int length);
 
 #ifdef __cplusplus
 }
