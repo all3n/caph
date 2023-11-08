@@ -72,7 +72,6 @@ typedef struct ch_requests ch_requests;
 typedef struct ch_requests {
   CURL *curl;
   struct curl_slist *headers;
-  void (*init)(ch_requests *requestss);
   ch_http_request *(*build_request)(ch_http_request *req, const char *url, ...);
   ch_http_response *(*do_request)(ch_requests *requestss,
                                   ch_http_request *request);
@@ -101,18 +100,6 @@ CH_CAPI_EXPORT void ch_clean_http_request(ch_http_request *request);
 CH_CAPI_EXPORT void ch_clean_http_response(ch_http_response *response);
 CH_CAPI_EXPORT void ch_cleanup_requests(ch_requests *requestss);
 
-// CH_CAPI_EXPORT void CH_REQUEST_GET(const char * base, ...);
-// CH_CAPI_EXPORT void CH_REQUEST_POST(const char * base, ...);
-// CH_CAPI_EXPORT void ch_requests_put(const char * base, ...);
-// CH_CAPI_EXPORT void ch_requests_delete(const char * base, ...);
-
-#define CH_MAKE_REQUESTS()                                                     \
-  {                                                                            \
-    .curl = NULL, .headers = NULL, .init = ch_init_requests,                   \
-    .build_request = ch_build_http_request, .do_request = ch_do_http_request,  \
-    .add_header = ch_add_http_header, .clean_request = ch_clean_http_request,  \
-    .clean_response = ch_clean_http_response, .cleanup = ch_cleanup_requests   \
-  }
 
 #define CH_HTTP_OK(res) (res->code == CURLE_OK && res->http_code == 200)
 

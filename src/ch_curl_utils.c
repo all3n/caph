@@ -93,8 +93,16 @@ static size_t read_callback(void *ptr, size_t size, size_t nmemb,
 }
 
 void ch_init_requests(ch_requests *requests) {
+  memset(requests, 0, sizeof(struct ch_requests));
+  requests->do_request = ch_do_http_request;
+  requests->build_request = ch_build_http_request;
+  requests->add_header = ch_add_http_header;
+  requests->clean_request = ch_clean_http_request;
+  requests->clean_response = ch_clean_http_response;
+  requests->cleanup = ch_cleanup_requests;
   curl_global_init(CURL_GLOBAL_DEFAULT);
 }
+
 ch_http_request *ch_build_http_request(ch_http_request *request,
                                        const char *format, ...) {
   if (request == NULL) {

@@ -47,6 +47,7 @@ set(SOURCES
   src/ch_logging.c    src/ch_opts.c       src/ch_sockets.c    src/ch_web.c        src/hashmap.c
 )
 file(GLOB_RECURSE TEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/tests/*tests.c")
+file(GLOB HEADER_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h")
 set(TEST_COMMON tests/tests_common.c)
 if (DEBUG)
   get_cmake_property(_variableNames VARIABLES)
@@ -109,7 +110,7 @@ if (ENABLE_TESTS)
 endif()
 
 
-install(DIRECTORY src/ DESTINATION include)
+install(FILES ${HEADER_FILES} DESTINATION include)
 install(TARGETS ${PROJECT}
         ARCHIVE DESTINATION lib
         LIBRARY DESTINATION lib
