@@ -11,8 +11,26 @@ set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_C_STANDARD 11)
 option(BUILD_STATIC "Build STATIC library" OFF)
 option(ENABLE_TESTS "ENABLE TESTS" ON)
+option(ENABLE_WEB "ENABLE WEB" ON)
 option(ENABLE_CROSS_WIN "CROSS WIN USE MINGW" OFF)
 set(CROSS_TOOLCHAIN toolchain-x86_64)
+
+file(GLOB HEADER_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h")
+set(TEST_COMMON tests/tests_common.c)
+# file(GLOB_RECURSE SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.c")
+set(SOURCES 
+  src/ch_curl_utils.c src/ch_md5.c        src/ch_path.c       src/ch_string.c     src/ch_zlib.c
+  src/ch_logging.c    src/ch_opts.c       src/ch_sockets.c    src/hashmap.c
+)
+
+# file(GLOB_RECURSE TEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/tests/*tests.c")
+set(TEST_SOURCES
+  tests/ch_curl_tests.c   tests/ch_opts_tests.c   
+  tests/ch_list_tests.c   tests/ch_path_tests.c
+  tests/ch_md5_tests.c    tests/ch_string_tests.c
+)
+
+
 
 if(APPLE)
   include_directories(/opt/homebrew/include)
@@ -29,26 +47,27 @@ endif()
 
 
 
-
-include(cmake/thirdparty.cmake)
+if(ENABLE_TESTS)
+  include(cmake/thirdparty_test.cmake)
+endif()
 # 根据构建类型设置编译选项
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g -O0")
 elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
     set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O3")
 endif()
-# tools
-add_executable(compile_res tools/res_compile.c src/ch_zlib.c src/ch_path.c src/ch_string.c src/ch_logging.c)
+
+if (ENABLE_WEB)
+    # tools
+    list(APPEND SOURCES src/ch_web.c)
+    list(APPEND TEST_SOURCES tests/ch_web_tests.c)
+    add_executable(compile_res tools/res_compile.c src/ch_zlib.c src/ch_path.c src/ch_string.c src/ch_logging.c)
+endif()
 
 
-# file(GLOB_RECURSE SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.c")
-set(SOURCES 
-  src/ch_curl_utils.c src/ch_md5.c        src/ch_path.c       src/ch_string.c     src/ch_zlib.c
-  src/ch_logging.c    src/ch_opts.c       src/ch_sockets.c    src/ch_web.c        src/hashmap.c
-)
-file(GLOB_RECURSE TEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/tests/*tests.c")
-file(GLOB HEADER_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h")
-set(TEST_COMMON tests/tests_common.c)
+
+
+
 if (DEBUG)
   get_cmake_property(_variableNames VARIABLES)
   list (SORT _variableNames)
@@ -57,23 +76,19 @@ if (DEBUG)
   endforeach()
 endif()
 
-
-file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/public)
-add_custom_command(
-    OUTPUT ${CMAKE_BINARY_DIR}/public/ch_res_public.h
-    COMMAND ${CMAKE_BINARY_DIR}/compile_res -i ${CMAKE_CURRENT_SOURCE_DIR}/public/dist -o ${CMAKE_BINARY_DIR}/public/ch_res_public.h
-    DEPENDS ${CMAKE_BINARY_DIR}/compile_res
-    COMMENT "compile res"
-)
-add_custom_target(RES_HEAD DEPENDS ${CMAKE_BINARY_DIR}/public/ch_res_public.h)
-
-#execute_process(
-#  COMMAND ${CMAKE_BINARY_DIR}/compile_res -i ${CMAKE_CURRENT_SOURCE_DIR}/public/dist -o ${CMAKE_BINARY_DIR}/public/ch_res_public.h
-#    RESULT_VARIABLE result
-#    OUTPUT_VARIABLE output
-#)
 include_directories(src)
-include_directories(${CMAKE_BINARY_DIR}/public)
+
+if (ENABLE_WEB)
+    file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/public)
+    add_custom_command(
+        OUTPUT ${CMAKE_BINARY_DIR}/public/ch_res_public.h
+        COMMAND ${CMAKE_BINARY_DIR}/compile_res -i ${CMAKE_CURRENT_SOURCE_DIR}/public/dist -o ${CMAKE_BINARY_DIR}/public/ch_res_public.h
+        DEPENDS ${CMAKE_BINARY_DIR}/compile_res
+        COMMENT "compile res"
+    )
+    add_custom_target(RES_HEAD DEPENDS ${CMAKE_BINARY_DIR}/public/ch_res_public.h)
+    include_directories(${CMAKE_BINARY_DIR}/public)
+endif()
 
 if(BUILD_STATIC)
     add_library(${PROJECT} STATIC ${SOURCES})
@@ -84,10 +99,15 @@ else()
     set_target_properties(${PROJECT} PROPERTIES LINKER_LANGUAGE C)
     set_target_properties(${PROJECT} PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/shared)
 endif()
-add_dependencies(${PROJECT} RES_HEAD)
+
+if (ENABLE_WEB)
+  add_dependencies(${PROJECT} RES_HEAD)
+  target_link_libraries(${PROJECT} PRIVATE microhttpd)
+endif()
+
 # for WIN32 export
 target_compile_definitions(${PROJECT} PRIVATE CH_COMPILE_LIBRARY)
-target_link_libraries(${PROJECT} PRIVATE json-c curl microhttpd)
+target_link_libraries(${PROJECT} PRIVATE json-c curl)
 
 
 if (ENABLE_TESTS)
