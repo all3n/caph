@@ -25,6 +25,7 @@ extern "C" {
 typedef int (*ch_path_callback)(const char *root, const char *sub_path,
                                 const char *name, int flags, void *user_data);
 
+CH_CAPI_EXPORT char *ch_get_home_path();
 // get user path with sub_path, return pointer you need to free
 // return:
 //    1. NULL if get HOME env fail

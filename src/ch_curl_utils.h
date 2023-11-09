@@ -1,8 +1,7 @@
-#ifndef _CURL_UTILS_H
-#define _CURL_UTILS_H
+#ifndef _CH_CURL_UTILS_H
+#define _CH_CURL_UTILS_H
 
 #include "ch_macro.h"
-#include "ch_string.h"
 #include <curl/curl.h>
 #include <json-c/json.h>
 #include <stdbool.h>
@@ -130,4 +129,4 @@ CH_CAPI_EXPORT void ch_cleanup_requests(ch_requests *requestss);
 #ifdef __cplusplus
 }
 #endif
-#endif // !#ifndef _CURL_UTILS_H
+#endif // !#ifndef CH_CURL_UTILS_H

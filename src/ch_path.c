@@ -16,11 +16,18 @@
 #include <unistd.h>
 #endif
 
-char *ch_get_user_path(const char *sub_path) {
+char *ch_get_home_path(){
   char *home_dir = getenv("HOME"); // Linux 和 Mac OS X
   if (home_dir == NULL) {
     home_dir = getenv("USERPROFILE"); // Windows
   }
+  if (home_dir == NULL) {
+    return NULL;
+  }
+  return home_dir;
+}
+char *ch_get_user_path(const char *sub_path) {
+  char * home_dir = ch_get_home_path();
   if (home_dir == NULL) {
     return NULL;
   }

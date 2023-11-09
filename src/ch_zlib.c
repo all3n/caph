@@ -1,15 +1,18 @@
 #include "ch_zlib.h"
-#include <dlfcn.h>
 #include <stdio.h>
 #include <stdlib.h>
 #ifdef __APPLE__ // macOS
 #define LIB_ZLIB "libz.dylib"
+#include <dlfcn.h>
 #elif defined(_WIN32) // Windows
+#include <windows.h>
 #define LIB_ZLIB "zlib1.dll"
 #elif defined(__linux__) // Linux
 #define LIB_ZLIB "libz.so.1"
+#include <dlfcn.h>
 #else
 #define LIB_ZLIB "libz.so"
+#include <dlfcn.h>
 #endif
 
 #define CHUNK_SIZE 1024

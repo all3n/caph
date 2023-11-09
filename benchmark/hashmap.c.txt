@@ -1,0 +1,9 @@
+1. Release -O3 on Apple M2 MAX
+Running hashmap.c benchmarks...
+seed=1699531252, count=5000000, item_size=4
+set            5000000 ops in 0.393 secs, 79 ns/op, 12732366 op/sec, 26.84 bytes/op
+get            5000000 ops in 0.165 secs, 33 ns/op, 30292382 op/sec
+delete         5000000 ops in 0.270 secs, 54 ns/op, 18499745 op/sec
+set (cap)      5000000 ops in 0.279 secs, 56 ns/op, 17905872 op/sec
+get (cap)      5000000 ops in 0.168 secs, 34 ns/op, 29695267 op/sec
+delete (cap)   5000000 ops in 0.235 secs, 47 ns/op, 21237104 op/sec
