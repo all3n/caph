@@ -14,12 +14,18 @@ option(ENABLE_WEB "ENABLE WEB" OFF)
 option(ENABLE_CROSS_WIN "CROSS WIN USE MINGW" OFF)
 set(CROSS_TOOLCHAIN toolchain-x86_64)
 
+
+# flags
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall")
+
+# files
 file(GLOB HEADER_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h")
 set(TEST_COMMON tests/tests_common.c)
 # file(GLOB_RECURSE SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.c")
 set(SOURCES 
   src/ch_curl_utils.c src/ch_md5.c        src/ch_path.c       src/ch_string.c     src/ch_zlib.c
   src/ch_logging.c    src/ch_opts.c       src/ch_sockets.c    src/hashmap.c       src/qrcodegen.c
+  src/ch_hash_map.c   src/ch_murmurhash.c
 )
 
 # file(GLOB_RECURSE TEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/tests/*tests.c")
@@ -28,6 +34,7 @@ set(TEST_SOURCES
   tests/ch_list_tests.c   tests/ch_path_tests.c
   tests/ch_md5_tests.c    tests/ch_string_tests.c
   tests/qrcode_tests.c    tests/ch_hash_tests.c
+  tests/ch_murmurhash_tests.c
 )
 
 
@@ -122,7 +129,6 @@ if (ENABLE_TESTS)
       target_link_libraries(${TEST_NAME} ${PROJECT} unity)
   endforeach(TEST_SOURCE)
 endif()
-add_executable(test_hash src/hashmap.c tests/ch_hash_tests.c)
 
 
 install(FILES ${HEADER_FILES} DESTINATION include)

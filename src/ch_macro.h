@@ -24,4 +24,10 @@
   ch_list_##X##_node *cur = l.head;                                            \
   while (cur != NULL)
 
+#define CH_UNUSED(x) (void)(x)
+
+#define CH_ASSERT(x) assert(x)
+
+
+
 #endif // _CH_MACRO_H
